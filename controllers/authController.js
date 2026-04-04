@@ -512,7 +512,7 @@ exports.resendVerification = async (req, res) => {
       expiresIn: "1h",
     });
 
-    const verifyUrl = `https://pixel-job-portal-backend.onrender.com//api/auth/verify/${verifyToken}`;
+    const verifyUrl = `https://pixel-job-portal-backend.onrender.com/api/auth/verify/${verifyToken}`;
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
