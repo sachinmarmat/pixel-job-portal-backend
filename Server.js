@@ -9,27 +9,41 @@ const Employer = require('./models/Employer');
 
 const app = express();
 
-/* -------------------- CORS -------------------- */
-app.use(cors({
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      "http://localhost:5173",
-      "https://pixel-ui-six.vercel.app" 
-    ];
+/* -------------------- CORS FIX -------------------- */
 
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS not allowed"));
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "https://pixel-ui-six.vercel.app"
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+
+    // allow requests with no origin (mobile apps / postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
+
+    return callback(new Error("CORS not allowed"));
   },
-  credentials: true
+  credentials: true,
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"]
 }));
+
+// handle preflight requests
+app.options("/", cors());
+
+/* -------------------- BODY PARSER -------------------- */
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /* -------------------- ROUTES -------------------- */
+
 app.use('/api/auth', require('./routes/authRoute'));
 app.use('/api/jobs', require('./routes/jobRoute'));
 app.use('/api/user', require('./routes/userRoute'));
@@ -41,12 +55,12 @@ app.get('/', (req, res) => {
   res.send('Hello backend is working!');
 });
 
-/* -------------------- START SERVER SAFELY -------------------- */
+/* -------------------- SERVER -------------------- */
+
 const PORT = process.env.PORT || 8080;
 
 connectDB().then(() => {
 
-  // ✅ Start cron ONLY after DB is connected
   cron.schedule("* * * * *", async () => {
     try {
       const now = new Date();
@@ -61,7 +75,6 @@ connectDB().then(() => {
         { status: "active", suspendedUntil: null, suspensionReason: null }
       );
 
-      // console.log("Cron job executed successfully");
     } catch (error) {
       console.error("Cron job error:", error.message);
     }

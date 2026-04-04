@@ -6,7 +6,7 @@ const Employer = require("../models/Employer");
 // Sign access and refresh tokens
 const signAccess = (user) => {
   // Ensure role is set properly
-  const userRole = user.role || (user.constructor.modelName === 'user' ? 'jobseeker' : 'employer');
+  const userRole = user.role || (user.constructor.modelName === 'user' ? 'jobseeker' : 'employ');
   return jwt.sign({ id: user._id, role: userRole }, process.env.JWT_ACCESS_SECRET, {
     expiresIn: process.env.ACCESS_EXPIRES,
   });
@@ -39,12 +39,24 @@ const protect = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    
+    if (!token) {
+      return res
+        .status(401)
+        .json({ status: false, msg: "Not authorized, token missing" });
+    }
 
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     req.user = decoded;
     
     next();
   } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ status: false, msg: "Token expired, please login again" });
+    }
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ status: false, msg: "Invalid token" });
+    }
     console.error("Auth error:", error.message);
     return res.status(401).json({ status: false, msg: "Not authorized" });
   }
